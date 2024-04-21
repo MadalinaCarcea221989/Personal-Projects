@@ -2,10 +2,7 @@ import time
 import pywifi
 from pywifi import const
 import multiprocessing
-
 import os
-
-
 
 available_devices = []
 keys = []
@@ -58,17 +55,17 @@ file_path = os.path.join(os.path.dirname(__file__), 'top400.txt')
 
 # Check if the file exists
 if os.path.exists(file_path):
-    print("File 'top400.txt' found!")
+    print("File 'trypass.txt' found!")
     # Read potential passwords from file
     with open(file_path, 'r') as f:
         for line in f:
             keys.append(line.strip())
 else:
-    print("File 'top400.txt' not found!")
+    print("File 'trypass.txt' not found!")
 
 
 # Read potential passwords from file
-with open('top400.txt', 'r') as f:
+with open('trypass.txt', 'r') as f:
     for line in f:
         keys.append(line.strip())
 
