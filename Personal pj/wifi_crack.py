@@ -3,6 +3,10 @@ import pywifi
 from pywifi import const
 import multiprocessing
 
+import os
+
+
+
 available_devices = []
 keys = []
 final_output = {}
@@ -46,8 +50,25 @@ def crack_passwords(networks, passwords):
                 break
     return final_output
 
+# Print the current working directory
+print("Current Directory:", os.getcwd())
+
+# Get the absolute path to the file
+file_path = os.path.join(os.path.dirname(__file__), 'top400.txt')
+
+# Check if the file exists
+if os.path.exists(file_path):
+    print("File 'top400.txt' found!")
+    # Read potential passwords from file
+    with open(file_path, 'r') as f:
+        for line in f:
+            keys.append(line.strip())
+else:
+    print("File 'top400.txt' not found!")
+
+
 # Read potential passwords from file
-with open('Personal pj/top400.txt', 'r') as f:
+with open('top400.txt', 'r') as f:
     for line in f:
         keys.append(line.strip())
 
@@ -76,3 +97,4 @@ print('*'*10, 'Discovered Passwords', '*'*10)
 print("{0:<12} {1:<}".format("HOST NAME", "PASSWORD"))
 for ssid, password in final_output.items():
     print("{:<12} {:<}".format(ssid, password))
+
